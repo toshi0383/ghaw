@@ -3,6 +3,8 @@ import RxCocoa
 import RxSwift
 import ShellOut
 
+let version = "0.1.0"
+
 let env = ProcessInfo.processInfo.environment
 guard let authToken = env["GITHUB_ACCESS_TOKEN"] else {
     print("GITHUB_ACCESS_TOKEN is not set")
@@ -15,6 +17,12 @@ guard userRepo.split(separator: "/").count == 2 else {
 }
 
 let args = ProcessInfo.processInfo.arguments
+
+if args.contains("--version") {
+    print(version)
+    exit(0)
+}
+
 let me: String = {
 
     for (i, arg) in args.enumerated() {
