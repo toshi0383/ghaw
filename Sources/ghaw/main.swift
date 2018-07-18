@@ -3,7 +3,7 @@ import RxCocoa
 import RxSwift
 import ShellOut
 
-let version = "0.1.0"
+let version = "0.1.1"
 
 let env = ProcessInfo.processInfo.environment
 guard let authToken = env["GITHUB_ACCESS_TOKEN"] else {

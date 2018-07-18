@@ -85,6 +85,7 @@ struct Review: Decodable {
     enum State: String, Decodable {
         case approved = "APPROVED"
         case commented = "COMMENTED"
+        case changesRequested = "CHANGES_REQUESTED"
     }
 
     let submitted_at: Date
