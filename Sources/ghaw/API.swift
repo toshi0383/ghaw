@@ -45,6 +45,7 @@ struct User: Decodable {
 
 struct Pull: Decodable {
     let number: Int
+    let title: String
     let user: User
 
     let milestone: Milestone?
