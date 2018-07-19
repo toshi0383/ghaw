@@ -3,7 +3,7 @@ import RxCocoa
 import RxSwift
 import ShellOut
 
-let version = "0.2.0"
+let version = "0.2.1"
 
 let env = ProcessInfo.processInfo.environment
 guard let authToken = env["GITHUB_ACCESS_TOKEN"] else {
@@ -75,9 +75,10 @@ struct ReadyForReview: CustomStringConvertible {
     let number: Int
     let title: String
     let milestone: String
+    let approveCount: Int
 
     var description: String {
-        return "\(urlString(for: number)) \(milestone)"
+        return "\(urlString(for: number)) \(milestone) \(approveCount)approves"
     }
 
     var json: [String: Any] {
@@ -85,7 +86,8 @@ struct ReadyForReview: CustomStringConvertible {
             "number": number,
             "title": title,
             "url": urlString(for: number),
-            "milestone": milestone
+            "milestone": milestone,
+            "approveCount": approveCount
         ]
     }
 }
@@ -188,11 +190,15 @@ case .readyForReview:
                     }
                     // reviews which pull-request should be ignored
                     let reviews = try! decoder.decode([Review].self, from: data)
-                        .filter { $0.user.login == me && $0.state == .approved }
-                    return .just(reviews)
+                    let shouldSkip = reviews.contains { $0.user.login == me && $0.state != .approved }
+                    return shouldSkip ? .empty() : .just(reviews)
                 }
-                .filter { $0.isEmpty }
-                .map { _ in ReadyForReview(number: pull.number, title: pull.title, milestone: pull.milestone?.title ?? "") }
+                .map { reviews in
+                    ReadyForReview(number: pull.number,
+                                   title: pull.title,
+                                   milestone: pull.milestone?.title ?? "",
+                                   approveCount: Set(reviews.filter { $0.state == .approved }.map { $0.user.login }).count)
+                }
         }
 
 
