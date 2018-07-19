@@ -3,7 +3,7 @@ import RxCocoa
 import RxSwift
 import ShellOut
 
-let version = "0.2.2"
+let version = "0.2.3"
 
 let env = ProcessInfo.processInfo.environment
 guard let authToken = env["GITHUB_ACCESS_TOKEN"] else {
@@ -172,7 +172,8 @@ case .readyForReview:
             .flatMap { data -> Observable<Pull> in
                 let decoder = JSONDecoder()
                 return .from(try! decoder.decode([Pull].self, from: data))
-        }
+            }
+            .filter { $0.user.login != me }
     }()
 
     let readyForReview: Observable<ReadyForReview> = openPulls
