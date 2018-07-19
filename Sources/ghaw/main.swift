@@ -3,7 +3,7 @@ import RxCocoa
 import RxSwift
 import ShellOut
 
-let version = "0.2.1"
+let version = "0.2.2"
 
 let env = ProcessInfo.processInfo.environment
 guard let authToken = env["GITHUB_ACCESS_TOKEN"] else {
@@ -190,7 +190,7 @@ case .readyForReview:
                     }
                     // reviews which pull-request should be ignored
                     let reviews = try! decoder.decode([Review].self, from: data)
-                    let shouldSkip = reviews.contains { $0.user.login == me && $0.state != .approved }
+                    let shouldSkip = reviews.contains { $0.user.login == me && $0.state == .approved }
                     return shouldSkip ? .empty() : .just(reviews)
                 }
                 .map { reviews in
