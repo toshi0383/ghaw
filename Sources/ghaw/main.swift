@@ -23,6 +23,12 @@ if args.contains("--version") {
     exit(0)
 }
 
+enum OutputType {
+    case `default`, json
+}
+
+let outputType: OutputType = args.contains("-j") ? .json : .default
+
 let me: String = {
 
     for (i, arg) in args.enumerated() {
@@ -67,10 +73,20 @@ struct ReviewCount: CustomStringConvertible {
 
 struct ReadyForReview: CustomStringConvertible {
     let number: Int
+    let title: String
     let milestone: String
 
     var description: String {
         return "\(urlString(for: number)) \(milestone)"
+    }
+
+    var json: [String: Any] {
+        return [
+            "number": number,
+            "title": title,
+            "url": urlString(for: number),
+            "milestone": milestone
+        ]
     }
 }
 
@@ -157,7 +173,7 @@ case .readyForReview:
         }
     }()
 
-    _ = openPulls
+    let readyForReview: Observable<ReadyForReview> = openPulls
         .filter { pull in !pull.labels.contains(where: { $0.name == "WIP" }) }
         .flatMap { pull -> Observable<ReadyForReview> in
             let req = ReviewsRequest(number: pull.number, userRepo: userRepo, authToken: authToken)
@@ -176,13 +192,32 @@ case .readyForReview:
                     return .just(reviews)
                 }
                 .filter { $0.isEmpty }
-                .map { _ in ReadyForReview(number: pull.number, milestone: pull.milestone?.title ?? "") }
+                .map { _ in ReadyForReview(number: pull.number, title: pull.title, milestone: pull.milestone?.title ?? "") }
         }
-        .subscribe(onNext: {
-            print($0.description)
-        }, onCompleted: {
-            exit(0)
-        })
+
+
+    if outputType == .json {
+        _ = readyForReview
+            .scan([]) { $0 + [$1] }
+            .takeLast(1)
+            .map { reviews in
+                let jsons = reviews.map { $0.json }
+                let data = try! JSONSerialization.data(withJSONObject: jsons, options: [])
+                return String(data: data, encoding: .utf8)!
+            }
+            .subscribe(onNext: {
+                print($0)
+            }, onCompleted: {
+                exit(0)
+            })
+    } else {
+        _ = readyForReview
+            .subscribe(onNext: {
+                print($0.description)
+            }, onCompleted: {
+                exit(0)
+            })
+    }
 }
 
 dispatchMain()
