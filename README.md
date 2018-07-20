@@ -3,10 +3,21 @@
 ghaw (GitHub at work) is useful cli command for professional GitHub users.
 
 # Actions
-## ready-for-review
+## `ready-for-review`
 Display pull-requests awaiting for your review.
 
-## job-done
+## `find-pull-requests`
+Find pull-requests matching given filename.
+```console
+$ find-pull-requests HumbergerViewModel
+https://github.com/toshi0383/hamburgerapp/pull/4119
+https://github.com/toshi0383/hamburgerapp/pull/4089
+https://github.com/toshi0383/hamburgerapp/pull/3824
+https://github.com/toshi0383/hamburgerapp/pull/3533
+https://github.com/toshi0383/hamburgerapp/pull/2912
+```
+
+## `job-done`
 Display your comment count of each pull-requests which you've reviewed today.
 
 # Install
