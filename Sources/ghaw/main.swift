@@ -43,16 +43,20 @@ let me: String = {
     return try! shellOut(to: "git config --get user.name")
 }()
 
-enum Mode {
-    case jobDone, readyForReview
+enum Command: String {
+    case jobDone = "job-done"
+    case readyForReview = "ready-for-review"
+    case findPullRequests = "find-pull-requests"
 }
 
-let mode: Mode = {
+let command: Command = {
     if args.contains("job-done") {
         return .jobDone
+    } else if args.contains("find-pull-requests") {
+        return .findPullRequests
     } else {
         return .readyForReview
-}
+    }
 }()
 
 let session = URLSession.shared
@@ -124,7 +128,7 @@ func isToday(_ submitted_at: Date) -> Bool {
 //
 // let api = API()
 
-switch mode {
+switch command {
 case .jobDone:
     let recentPulls: Observable<Pull> = {
         let req = PullsRequest(authToken: authToken, userRepo: userRepo, state: .all, sort: .updated, direction: .desc)
@@ -224,6 +228,29 @@ case .readyForReview:
             }, onCompleted: {
                 exit(0)
             })
+    }
+
+case .findPullRequests:
+    let shellScriptPath: String = {
+        let bundlePath = Bundle.main.bundlePath
+        if bundlePath.contains(".build/debug") {
+            return "\(bundlePath)/../../../Sources/Scripts/find-pull-requests.sh"
+        } else {
+            return "\(bundlePath)/../lib/ghaw/find-pull-requests.sh"
+        }
+    }()
+
+    do {
+        guard let match = args.last, match != command.rawValue else {
+            print("missing parameter")
+            exit(1)
+        }
+        let result = try shellOut(to: shellScriptPath, arguments: [match])
+        print(result)
+        exit(0)
+    } catch {
+        print(error)
+        exit(1)
     }
 }
 
