@@ -236,7 +236,7 @@ case .findPullRequests:
         if bundlePath.contains(".build/debug") {
             return "\(bundlePath)/../../../Sources/Scripts/find-pull-requests.sh"
         } else {
-            return "\(bundlePath)/../lib/ghaw/find-pull-requests.sh"
+            return "\(bundlePath)/../share/ghaw/find-pull-requests.sh"
         }
     }()
 
