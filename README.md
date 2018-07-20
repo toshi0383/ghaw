@@ -1,10 +1,11 @@
 # ghaw
 
-ghaw (GitHub at work) is useful cli command for professional GitHub users.
+ghaw (GitHub at work) is useful CLI tool for professional GitHub users.
 
-# Actions
+# Command
 ## `ready-for-review`
 Display pull-requests awaiting for your review.
+One with `WIP` label is filtered.
 
 ## `find-pull-requests`
 Find pull-requests matching given filename.
@@ -19,6 +20,7 @@ https://github.com/toshi0383/hamburgerapp/pull/2912
 
 ## `job-done`
 Display your comment count of each pull-requests which you've reviewed today.
+JSON output option (`-u`) is supported.
 
 # Install
 ## Binary
