@@ -10,7 +10,7 @@ One with `WIP` label is filtered.
 ## `find-pull-requests`
 Find pull-requests matching given filename.
 ```console
-$ find-pull-requests HumbergerViewModel
+$ ghaw find-pull-requests HumbergerViewModel
 https://github.com/toshi0383/hamburgerapp/pull/4119
 https://github.com/toshi0383/hamburgerapp/pull/4089
 https://github.com/toshi0383/hamburgerapp/pull/3824
