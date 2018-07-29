@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "CoreCLI",
+        "repositoryURL": "https://github.com/toshi0383/CoreCLI",
+        "state": {
+          "branch": null,
+          "revision": "3bc072fb589f0b9e7da2e3ddfcfe331a2e8a97bb",
+          "version": "0.1.5"
+        }
+      },
+      {
         "package": "RxSwift",
         "repositoryURL": "https://github.com/ReactiveX/RxSwift",
         "state": {

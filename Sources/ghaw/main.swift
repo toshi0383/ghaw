@@ -1,98 +1,70 @@
+import CoreCLI
 import Foundation
 import RxCocoa
 import RxSwift
 import ShellOut
 
-let version = "0.3.2"
+struct Environment {
+    let userRepo: String
+    let authToken: String
+    let session: URLSession =  {
+        let session = URLSession.shared
+        session.configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return session
+    }()
 
-let env = ProcessInfo.processInfo.environment
-guard let authToken = env["GITHUB_ACCESS_TOKEN"] else {
-    print("GITHUB_ACCESS_TOKEN is not set")
-    exit(1)
+    private static var _shared: Environment?
+
+    static func shared() throws -> Environment {
+        let environment = try Environment()
+        _shared = environment
+        return environment
+    }
+
+    private init() throws {
+        let env = ProcessInfo.processInfo.environment
+        guard let authToken = env["GITHUB_ACCESS_TOKEN"] else {
+            throw CommandError("GITHUB_ACCESS_TOKEN is not set")
+        }
+        self.authToken = authToken
+        let userRepo = try! shellOut(to: "git remote -v | head -1 | sed -n \'s/.*github.com.\\(.*\\)\\.git.*/\\1/p\'")
+        guard userRepo.split(separator: "/").count == 2 else {
+            throw CommandError("Failed to parse owner/repoName")
+        }
+        self.userRepo = userRepo
+    }
 }
-let userRepo = try! shellOut(to: "git remote -v | head -1 | sed -n \'s/.*github.com.\\(.*\\)\\.git.*/\\1/p\'")
-guard userRepo.split(separator: "/").count == 2 else {
-    print("Failed to parse owner/repoName")
-    exit(1)
-}
 
-let args = ProcessInfo.processInfo.arguments
+struct Ghaw: CommandType {
 
-if args.contains("--version") {
-    print(version)
-    exit(0)
-}
+    private let version = "0.3.2"
 
-enum OutputType {
-    case `default`, json
-}
+    let argument: Argument
 
-let outputType: OutputType = args.contains("-j") ? .json : .default
+    struct Argument: AutoArgumentsDecodable {
+        let version: Bool
+        let subCommand: CommandType?
 
-let me: String = {
+        static let subCommands: [CommandType.Type] = [FindPullRequests.self,
+                                                      JobDone.self,
+                                                      ReadyForReview.self]
+    }
 
-    for (i, arg) in args.enumerated() {
-        if i + 1 == args.count {
-            break
+    init() throws {
+        let parser = ArgumentParser(arguments: ProcessInfo.processInfo.arguments)
+        self.argument = try Argument(parser: parser)
+    }
+
+    func run() throws {
+        if argument.version {
+            print(version)
+            exit(0)
         }
 
-        if arg == "-u" {
-            return args[i + 1]
+        guard let subCommand = argument.subCommand else {
+            throw CommandError("Missing subCommand.")
         }
-    }
-    return try! shellOut(to: "git config --get user.name")
-}()
-
-enum Command: String {
-    case jobDone = "job-done"
-    case readyForReview = "ready-for-review"
-    case findPullRequests = "find-pull-requests"
-}
-
-let command: Command = {
-    if args.contains("job-done") {
-        return .jobDone
-    } else if args.contains("find-pull-requests") {
-        return .findPullRequests
-    } else {
-        return .readyForReview
-    }
-}()
-
-let session = URLSession.shared
-session.configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-
-private func urlString(for number: Int) -> String {
-    return "https://github.com/\(userRepo)/pull/\(number)"
-}
-
-struct ReviewCount: CustomStringConvertible {
-    let number: Int
-    let count: Int
-
-    var description: String {
-        return "https://github.com/\(userRepo)/pull/\(number) : \(count)"
-    }
-}
-
-struct ReadyForReview: CustomStringConvertible {
-    let number: Int
-    let title: String
-    let milestone: String
-    let approveCount: Int
-
-    var description: String {
-        return "\(urlString(for: number)) \(milestone) \(approveCount)approves"
-    }
-
-    var json: [String: Any] {
-        return [
-            "number": number,
-            "title": title,
-            "url": urlString(for: number),
-            "milestone": milestone,
-            "approveCount": approveCount
-        ]
+        try subCommand.run()
     }
 }
 
@@ -128,149 +100,10 @@ func isToday(_ submitted_at: Date) -> Bool {
 //
 // let api = API()
 
-switch command {
-case .jobDone:
-    let recentPulls: Observable<Pull> = {
-        let req = PullsRequest(authToken: authToken, userRepo: userRepo, state: .all, sort: .updated, direction: .desc)
-        return session.rx
-            .data(request: req.urlRequest)
-            .flatMap { data -> Observable<Pull> in
-                let decoder = JSONDecoder()
-                return .from(try! decoder.decode([Pull].self, from: data))
-        }
-    }()
-
-    _ = recentPulls
-        .filter { $0.user.login != me }
-        .flatMap { pull -> Observable<ReviewCount> in
-
-            let req = ReviewsRequest(number: pull.number, userRepo: userRepo, authToken: authToken)
-
-            // TODO: pagination https://developer.github.com/v3/guides/traversing-with-pagination/
-            return session.rx
-                .data(request: req.urlRequest)
-                .flatMap { data -> Observable<[Review]> in
-                    let decoder = JSONDecoder()
-                    if #available(macOS 10.13, *) {
-                        decoder.dateDecodingStrategy = .iso8601
-                    }
-                    let reviews = try! decoder.decode([Review].self, from: data)
-                        .filter { $0.user.login == me && isToday($0.submitted_at) }
-                    return .just(reviews)
-                }
-                .map { $0.count }
-                .filter { $0 > 0 }
-                .map { ReviewCount(number: pull.number, count: $0) }
-        }
-        .subscribe(onNext: {
-            print($0.description)
-        }, onCompleted: {
-            exit(0)
-        })
-
-case .readyForReview:
-    let openPulls: Observable<Pull> = {
-        let req = PullsRequest(authToken: authToken, userRepo: userRepo, state: .open, sort: .created, direction: .asc)
-        return session.rx
-            .data(request: req.urlRequest)
-            .flatMap { data -> Observable<Pull> in
-                let decoder = JSONDecoder()
-                return .from(try! decoder.decode([Pull].self, from: data))
-            }
-            .filter { $0.user.login != me }
-    }()
-
-    let readyForReview: Observable<ReadyForReview> = openPulls
-        .filter { pull in !pull.labels.contains(where: { $0.name == "WIP" }) }
-        .flatMap { pull -> Observable<ReadyForReview> in
-            let req = ReviewsRequest(number: pull.number, userRepo: userRepo, authToken: authToken)
-
-            // TODO: pagination https://developer.github.com/v3/guides/traversing-with-pagination/
-            return session.rx
-                .data(request: req.urlRequest)
-                .flatMap { data -> Observable<[Review]> in
-                    let decoder = JSONDecoder()
-                    if #available(macOS 10.13, *) {
-                        decoder.dateDecodingStrategy = .iso8601
-                    }
-                    // reviews which pull-request should be ignored
-                    let reviews = try! decoder.decode([Review].self, from: data)
-                    let shouldSkip = reviews.contains { $0.user.login == me && $0.state == .approved }
-                    return shouldSkip ? .empty() : .just(reviews)
-                }
-                .map { reviews in
-                    ReadyForReview(number: pull.number,
-                                   title: pull.title,
-                                   milestone: pull.milestone?.title ?? "",
-                                   approveCount: Set(reviews.filter { $0.state == .approved }.map { $0.user.login }).count)
-                }
-        }
-
-
-    if outputType == .json {
-        _ = readyForReview
-            .scan([]) { $0 + [$1] }
-            .takeLast(1)
-            .map { reviews in
-                let jsons = reviews.map { $0.json }
-                let data = try! JSONSerialization.data(withJSONObject: jsons, options: [])
-                return String(data: data, encoding: .utf8)!
-            }
-            .subscribe(onNext: {
-                print($0)
-            }, onCompleted: {
-                exit(0)
-            })
-    } else {
-        _ = readyForReview
-            .subscribe(onNext: {
-                print($0.description)
-            }, onCompleted: {
-                exit(0)
-            })
-    }
-
-case .findPullRequests:
-    let shellScriptPath: String = {
-        let executableDir: String = {
-            let path = "\(Bundle.main.bundlePath)/ghaw"
-            let fm = FileManager.default
-            let executablePath = (try? fm.destinationOfSymbolicLink(atPath: path)) ?? path
-            let joined = executablePath.split(separator: "/").dropLast().joined(separator: "/")
-            if executablePath.hasPrefix("/") {
-                return "/\(joined)"
-            } else {
-                return joined
-            }
-        }()
-
-        if executableDir.contains(".build") {
-            // spm debug
-            return "\(executableDir)/../../../Sources/Scripts/find-pull-requests.sh"
-        } else if executableDir.contains("Library/Developer/Xcode/DerivedData") {
-            // Xcode
-            fatalError("Executing a script while debugging with Xcode is not supported. Please use SPM from commandline.")
-        } else if executableDir.contains("lib/mint/packages") {
-            // mint install
-            return "\(executableDir)/find-pull-requests.sh"
-        } else {
-            // install.sh
-            return "\(executableDir)/../share/ghaw/find-pull-requests.sh"
-        }
-    }()
-
-    do {
-        guard let match = args.last, match != command.rawValue else {
-            print("missing parameter")
-            exit(1)
-        }
-        let result = try shellOut(to: shellScriptPath, arguments: [match])
-        print(result)
-        exit(0)
-    } catch {
-        print(error)
-        exit(1)
-    }
+do {
+    try Ghaw().run()
+    dispatchMain()
+} catch {
+    print(error)
+    exit(1)
 }
-
-dispatchMain()
