@@ -116,8 +116,8 @@ extension JobDone.Argument {
             return nil
         }
 
-        self.user = try? getOptionValue(keyPath: \Base.user)
         self.json = getFlag(keyPath: \Base.json)
+        self.user = try? getOptionValue(keyPath: \Base.user)
     }
 }
 
@@ -172,8 +172,8 @@ extension ReadyForReview.Argument {
             return nil
         }
 
-        self.user = try? getOptionValue(keyPath: \Base.user)
         self.json = getFlag(keyPath: \Base.json)
+        self.user = try? getOptionValue(keyPath: \Base.user)
     }
 }
 
