@@ -3,7 +3,7 @@ import RxCocoa
 import RxSwift
 import ShellOut
 
-let version = "0.3.1"
+let version = "0.3.2"
 
 let env = ProcessInfo.processInfo.environment
 guard let authToken = env["GITHUB_ACCESS_TOKEN"] else {
@@ -233,7 +233,9 @@ case .readyForReview:
 case .findPullRequests:
     let shellScriptPath: String = {
         let executableDir: String = {
-            let executablePath = try! FileManager.default.destinationOfSymbolicLink(atPath: "\(Bundle.main.bundlePath)/ghaw")
+            let path = "\(Bundle.main.bundlePath)/ghaw"
+            let fm = FileManager.default
+            let executablePath = (try? fm.destinationOfSymbolicLink(atPath: path)) ?? path
             let joined = executablePath.split(separator: "/").dropLast().joined(separator: "/")
             if executablePath.hasPrefix("/") {
                 return "/\(joined)"
@@ -242,9 +244,12 @@ case .findPullRequests:
             }
         }()
 
-        if executableDir.contains(".build/debug") {
-            // debug
+        if executableDir.contains(".build") {
+            // spm debug
             return "\(executableDir)/../../../Sources/Scripts/find-pull-requests.sh"
+        } else if executableDir.contains("Library/Developer/Xcode/DerivedData") {
+            // Xcode
+            fatalError("Executing a script while debugging with Xcode is not supported. Please use SPM from commandline.")
         } else if executableDir.contains("lib/mint/packages") {
             // mint install
             return "\(executableDir)/find-pull-requests.sh"
