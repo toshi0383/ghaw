@@ -1,5 +1,5 @@
 #!/bin/bash
 VERSION=${1:?}
-CURRENT=${2:-`hackscode --version`}
-sed -i "" -e "s/master/${VERSION}/" CHANGELOG.md
-git grep -l $CURRENT | grep -v CHANGELOG.md | xargs sed -i "" -e "s/${CURRENT}/${VERSION}/g"
+CURRENT=0.3.3
+#sed -i "" -e "s/master/${VERSION}/" CHANGELOG.md
+git grep -l $CURRENT | xargs sed -i "" -e "s/${CURRENT}/${VERSION}/g"
