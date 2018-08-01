@@ -23,7 +23,7 @@ struct ReadyForReview: CommandType {
     }
 
     func run() throws {
-        
+
         // shared variables
         let env = try Environment.shared()
         let authToken = env.authToken
@@ -42,6 +42,7 @@ struct ReadyForReview: CommandType {
             let title: String
             let milestone: String
             let approveCount: Int
+            let commentCountByMe: Int
             let userRepo: String
 
             private func urlString(for number: Int) -> String {
@@ -49,7 +50,7 @@ struct ReadyForReview: CommandType {
             }
 
             var description: String {
-                return "\(urlString(for: number)) \(milestone) \(approveCount)approves"
+                return "\(urlString(for: number)) 🔖\(milestone) ✅\(approveCount) \(commentCountByMe == 0 ? "" : "🤔")"
             }
 
             var json: [String: Any] {
@@ -58,6 +59,7 @@ struct ReadyForReview: CommandType {
                     "title": title,
                     "url": urlString(for: number),
                     "milestone": milestone,
+                    "commentCountByMe": commentCountByMe,
                     "approveCount": approveCount
                 ]
             }
@@ -97,9 +99,10 @@ struct ReadyForReview: CommandType {
                                title: pull.title,
                                milestone: pull.milestone?.title ?? "",
                                approveCount: Set(reviews.filter { $0.state == .approved }.map { $0.user.login }).count,
+                               commentCountByMe: reviews.filter { $0.user.login  == me }.count,
                                userRepo: userRepo)
-                }
-        }
+                    }
+            }
 
 
         if argument.json {
