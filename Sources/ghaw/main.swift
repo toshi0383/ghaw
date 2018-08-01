@@ -45,6 +45,7 @@ struct Ghaw: CommandType {
         let version: Bool
         let subCommand: CommandType?
 
+        static let defaultSubCommand: CommandType.Type? = ReadyForReview.self
         static let subCommands: [CommandType.Type] = [FindPullRequests.self,
                                                       JobDone.self,
                                                       ReadyForReview.self]
