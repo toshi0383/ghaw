@@ -6,6 +6,66 @@
 
 import CoreCLI
 
+// - MARK: FindPullRequests.Argument
+
+extension FindPullRequests.Argument {
+    private typealias Base = FindPullRequests.Argument
+
+    private static var autoMappedOptions: [PartialKeyPath<Base>: String] {
+        return [
+            \Base.match: "--match",
+        ]
+    }
+
+    private static var autoMappedFlags: [KeyPath<Base, Bool>: String] {
+        return [
+:        ]
+    }
+
+    init(parser: ArgumentParserType) throws {
+
+        func getOptionValue(keyPath: PartialKeyPath<Base>) throws -> String {
+            if let short = Base.shortHandOptions[keyPath],
+                let value = try? parser.getValue(forOption: "-\(short)") {
+                return value
+            }
+            let long = Base.autoMappedOptions[keyPath]!
+            return try parser.getValue(forOption: long)
+        }
+
+        func getFlag(keyPath: KeyPath<Base, Bool>) -> Bool {
+            if let short = Base.shortHandFlags[keyPath] {
+                let value = parser.getFlag("-\(short)")
+                if value {
+                    return true
+                }
+            }
+            let long = Base.autoMappedFlags[keyPath]!
+            return parser.getFlag(long)
+        }
+
+        func getCommandType() -> CommandType.Type? {
+            for (i, arg) in parser.remainder.enumerated() {
+                if let subCommand = Base.shortHandCommands[arg] {
+                    parser.shift(at: i)
+                    return subCommand
+                }
+                if let subCommand = Base.subCommands.first(where: { $0.name == arg }) {
+                    parser.shift(at: i)
+                    return subCommand
+                }
+            }
+
+            return Base.defaultSubCommand
+        }
+
+        guard let shifted = parser.shift() else {
+            throw CommandError("Missing match parameter.")
+        }
+        self.match = shifted
+    }
+}
+
 // - MARK: Ghaw.Argument
 
 extension Ghaw.Argument {
@@ -190,6 +250,10 @@ extension ReadyForReview.Argument {
 
 extension FindPullRequests {
     private typealias Base = FindPullRequests
+
+    init(parser: ArgumentParserType) throws {
+        self.argument = try FindPullRequests.Argument(parser: parser)
+    }
 
     static var name: String {
         return "find-pull-requests"
