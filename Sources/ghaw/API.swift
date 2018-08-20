@@ -87,6 +87,7 @@ struct Review: Decodable {
         case approved = "APPROVED"
         case commented = "COMMENTED"
         case changesRequested = "CHANGES_REQUESTED"
+        case dismissed = "DISMISSED"
     }
 
     let submitted_at: Date
