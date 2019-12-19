@@ -3,6 +3,20 @@
 ghaw (GitHub at work) is useful CLI tool for professional GitHub users.
 
 # Command
+
+## `find-pull-requests`
+Find pull-requests matching given filename.
+Requires explicit merge commit with default message from GitHub.
+
+```console
+$ ghaw find-pull-requests HumbergerViewModel
+https://github.com/toshi0383/hamburgerapp/pull/4119
+https://github.com/toshi0383/hamburgerapp/pull/4089
+https://github.com/toshi0383/hamburgerapp/pull/3824
+https://github.com/toshi0383/hamburgerapp/pull/3533
+https://github.com/toshi0383/hamburgerapp/pull/2912
+```
+
 ## `ready-for-review`
 Display pull-requests awaiting for your review.
 One with `WIP` label is filtered.
@@ -18,27 +32,10 @@ https://github.com/org/app/pull/4239 🔖v2.16.0 ✅0 🤔
 
 JSON output option (`-j`) is also supported in case you want to change the output.
 
-## `find-pull-requests`
-Find pull-requests matching given filename.
-Requires explicit merge commit with default message from GitHub.
-
-```console
-$ ghaw find-pull-requests HumbergerViewModel
-https://github.com/toshi0383/hamburgerapp/pull/4119
-https://github.com/toshi0383/hamburgerapp/pull/4089
-https://github.com/toshi0383/hamburgerapp/pull/3824
-https://github.com/toshi0383/hamburgerapp/pull/3533
-https://github.com/toshi0383/hamburgerapp/pull/2912
-```
-
 ## `job-done`
 Display your comment count of each pull-requests which you've reviewed today.
 
 # Install
-## Binary
-```
-bash <(curl -sL https://raw.githubusercontent.com/toshi0383/scripts/master/swiftpm/install.sh) toshi0383/ghaw
-```
 
 ## Mint
 ```
