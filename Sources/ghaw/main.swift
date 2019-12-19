@@ -37,7 +37,7 @@ struct Environment {
 
 struct Ghaw: CommandType {
 
-    private let version = "0.3.7"
+    private let version = "0.4.0"
 
     let argument: Argument
 
