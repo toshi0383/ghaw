@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/ReactiveX/RxSwift",
         "state": {
           "branch": null,
-          "revision": "faeb158ce76d355f3f9242fdd0258a9face62f37",
-          "version": "4.2.0"
+          "revision": "b3e888b4972d9bc76495dd74d30a8c7fad4b9395",
+          "version": "5.0.1"
         }
       },
       {
@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/JohnSundell/ShellOut",
         "state": {
           "branch": null,
-          "revision": "f1c253a34a40df4bfd268b09fdb101b059f6d52d",
-          "version": "2.1.0"
+          "revision": "4ebf25863deb9c3c02696704fc3d39736183f258",
+          "version": "2.2.1"
         }
       }
     ]
